@@ -25,10 +25,10 @@ app.config["DEBUG"] = True
 class Dt: 
     key_word = "Tax"
     dirs = {
-        "input" : "/Users/shanglinghsu/Downloads/labeling with ai/LabelingTrainingData/Input",
-        "recommend" : "/Users/shanglinghsu/Downloads/labeling with ai/LabelingTrainingData/Recommend",
-        "final" : "/Users/shanglinghsu/Downloads/labeling with ai/LabelingTrainingData/Final",
-        "metadata" : "/Users/shanglinghsu/Downloads/labeling with ai/LabelingTrainingData/"
+        "input" : "./LabelingTrainingData/Input",
+        "recommend" : "./LabelingTrainingData/Recommend",
+        "final" : "./LabelingTrainingData/Final",
+        "metadata" : "./LabelingTrainingData/"
     }
 
     #file_idx = 0
