@@ -1,11 +1,18 @@
 """
-會有以下dirs:
-1. raw input: input_dir
-2. 得到的 推薦標注: recommended_dir
-3. 最後確定標注: final_dir
+有以下dirs:
+1. raw input, 要先準備好: Input
+2. 推薦標注: Recommend
+3. 最後使用者標注，評分用: Final
+
+flask cors的問題解法：（稍微試了一次，還可能要改）
+https://stackoverflow.com/questions/25594893/how-to-enable-cors-in-flask
+
+read/write json
+https://stackabuse.com/reading-and-writing-json-to-a-file-in-python/
 """
 import os
 import flask
+from flask import request
 from flask_cors import CORS, cross_origin
 import json
 from recommender import select_box
@@ -69,6 +76,7 @@ def process():
             with open(os.path.join(Dt.dirs["input"], name)) as json_in:
                 json_obj = json.loads(json_in.read())
                 rtn = select_box(Dt.key_word, json_obj)
+                
                 if rtn ==0 : 
                     other_fnames.append(name)
                 else:
@@ -84,34 +92,59 @@ def process():
     detected = len(other_fnames) + succeeded
     return "{} out of {} ({:.2f}%) processed successfully with recommendations.".format(succeeded, detected, succeeded/detected*100)
 
-    
-def load_page():
+@app.route('/init_page', methods=['GET'])
+def init_page():
+    """
+    OUT: A JSON LIST of the following: (containing all recommendations)
+    {
+        "filename": "labeling_....",
+        "elements":
+        [
+            {
+                "boundingBox":[602,777,636,776,636,804,603,805],
+                "text": "Something",
+                "confidence":"Low"
+            }
+        ]
+    }
+    """
     json_objs = []
-    for i in range(Dt.images_per_page):
-        Dt.file_idx += 1
-        if(Dt.file_idx >= len(Dt.fnames)):
-            break
-        name = Dt.fnames[Dt.file_idx]
+    for name in Dt.fnames:
         with open(os.path.join(Dt.dirs["recommend"], name)) as json_rec:
             json_objs.append(json_rec.read())
 
     return "[{}]".format(",".join(json_objs))
 
-@app.route('/init_page', methods=['GET'])
-def init_page():
+@app.route('/submit', methods=['GET'])
+def submit():
     """
-    翻頁。每次enter再進下一頁
-    OUT: A JSON LIST (len=4) of the following:
+    key: "answer"
+    value: A string, which is a json list of the following:
     {
-        "filename": "labeling_....",
-        "elements":
-        [
-            {"boundingBox":[602,777,636,776,636,804,603,805]},
-            {"boundingBox":[641,776,668,776,668,804,642,804]}
-        ]
+        "filename" : "labeling_0000.json",
+        "content" : {
+            "text" : "$13. 53",
+            "elements":
+            [
+                {
+                    "bounding box":[602,777,636,776,636,804,603,805],
+                    "bounding box":[602,777,636,776,636,804,603,805],
+                    ...
+                }
+            ]
+        }
     }
     """
-    Dt.file_idx = 0
-    return load_page()
+    if 'answer' in request.args:
+        answer = str(request.args['answer'])
+    else:
+        return "Failed"
+    
+    json_objs = json.loads(answer)
+    for obj in json_objs:
+        with open(os.path.join(Dt.dirs['final'], obj['filename']),'w') as json_out:
+            json.dump(obj["content"], json_out)
+    
+    return "Succeeded"
 
 app.run()
