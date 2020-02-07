@@ -1,5 +1,4 @@
-# Backend of the project
-Careerhack 2020
+# labeling-frontend
 
 ## Instructions
 (Suppose you have flask dependencies and so on already)

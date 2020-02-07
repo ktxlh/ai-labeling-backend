@@ -107,8 +107,13 @@ def init_page():
             }
         ]
     }
-    """
+    """    
     json_objs = []
+    if len(Dt.fnames) == 0:
+        for root, dirs, files in os.walk(Dt.dirs["recommend"], topdown=False):
+            Dt.fnames = list([name for name in files if name.endswith(".json")])
+            Dt.fnames.sort()
+
     for name in Dt.fnames:
         with open(os.path.join(Dt.dirs["recommend"], name)) as json_rec:
             json_objs.append(json_rec.read())
