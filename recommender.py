@@ -51,7 +51,7 @@ def select_box(keywords,img_json):
     box_selected = []
     if upper or lower != 0:
         for boundingBox in img_json['recognitionResults'][0]['lines'] :
-            if boundingBox['boundingBox'][1] > upper-20 and boundingBox['boundingBox'][7] < lower+20:
+            if boundingBox['boundingBox'][1] > upper-(lower-upper) and boundingBox['boundingBox'][7] < lower+(lower-upper):
                 box_selected.extend(boundingBox['words'])
             
     if box_selected == [] :
