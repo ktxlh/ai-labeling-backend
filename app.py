@@ -10,11 +10,13 @@ https://stackoverflow.com/questions/25594893/how-to-enable-cors-in-flask
 read/write json
 https://stackabuse.com/reading-and-writing-json-to-a-file-in-python/
 """
+import json
 import os
+
 import flask
 from flask import request
 from flask_cors import CORS, cross_origin
-import json
+
 from recommender import select_box
 
 app = flask.Flask(__name__)
@@ -81,9 +83,10 @@ def process():
                     other_fnames.append(name)
                 else:
                     succeeded_fnames.append(name)
-                    json_dict = dict()
-                    json_dict['filename'] = name
-                    json_dict['elements'] = rtn
+                    json_dict = {
+                        'filename' : name,
+                        'elements' : rtn
+                    }
                     with open(os.path.join(Dt.dirs["recommend"], name), 'w') as json_out:
                         json.dump(json_dict, json_out)
     
@@ -120,7 +123,7 @@ def init_page():
 
     return "[{}]".format(",".join(json_objs))
 
-@app.route('/submit', methods=['GET'])
+@app.route('/submit', methods=['POST'])
 def submit():
     """
     key: "answer"
@@ -131,20 +134,14 @@ def submit():
             "text" : "$13. 53",
             "elements":
             [
-                {
-                    "bounding box":[602,777,636,776,636,804,603,805],
-                    "bounding box":[602,777,636,776,636,804,603,805],
-                    ...
-                }
+                {"bounding box":[602,777,636,776,636,804,603,805]},
+                {"bounding box":[602,777,636,776,636,804,603,805]},
+                ...
             ]
         }
     }
     """
-    if 'answer' in request.args:
-        answer = str(request.args['answer'])
-    else:
-        return "Failed"
-    
+    answer = request.stream.read()
     json_objs = json.loads(answer)
     for obj in json_objs:
         with open(os.path.join(Dt.dirs['final'], obj['filename']),'w') as json_out:

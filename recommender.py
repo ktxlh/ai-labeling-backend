@@ -25,6 +25,13 @@ def has_date(date):
         return False
 
 def select_box(keywords,img_json):
+    """
+    box_selected is either 0 or a non-empty list of
+    {
+        "boundingBox": [195,81,227,81,227,94,194,94],
+        "text": "House"
+    }
+    """
     def find_Y(keywords,img_json):
         upper=lower = 0
         if keywords != "date" :
@@ -45,8 +52,6 @@ def select_box(keywords,img_json):
     if upper or lower != 0:
         for boundingBox in img_json['recognitionResults'][0]['lines'] :
             if boundingBox['boundingBox'][1] > upper-20 and boundingBox['boundingBox'][7] < lower+20:
-#                 for box in boundingBox['words']:
-#                 for box in boundingBox['words']:
                 box_selected.extend(boundingBox['words'])
             
     if box_selected == [] :
