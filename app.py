@@ -1,6 +1,7 @@
 """
 The following directrories are involved:
-1. Input:       The raw input (the one given). It must be created explicitly in advance.
+1. Input:       The raw input (the one given). It must be created 
+                    explicitly in advance.
 2. Recommend:   The predicted labels
 3. Final:       The final labeling results for scoring
 """
@@ -78,7 +79,8 @@ def rule_based():
     Dt.other_fnames = other_fnames
     succeeded = len(succeeded_fnames)
     detected = len(other_fnames) + succeeded
-    return "{} out of {} ({:.2f}%) processed successfully with recommendations.".format(succeeded, detected, succeeded/detected*100)
+    return "{} out of {} ({:.2f}%) processed successfully with recommendations.".format(
+        succeeded, detected, succeeded/detected*100)
 
 
 #############################################
@@ -87,8 +89,7 @@ def rule_based():
 @app.route('/process', methods=['GET'])
 def process():
     """
-    Do the prediction. The result will be 
-    stored in /Recommend
+    Do the prediction. The result will be stored in /Recommend
     """
     check_dirs()
     return rule_based()
@@ -146,7 +147,8 @@ def submit():
     json_objs = json.loads(answer)
     for obj in json_objs:
         with open(os.path.join(Dt.dirs['final'], obj['filename']),'w') as json_out:
-            if(not len(obj["content"]['text'])==0 and not len(obj["content"]['elements'])==0):
+            if(not len(obj["content"]['text'])==0 
+                    and not len(obj["content"]['elements'])==0):
                 json.dump(obj["content"], json_out)
     
     return "Succeeded"

@@ -1,8 +1,9 @@
 """
 We cluster bounding boxes according to their semantic meaning 
-and postitions. Then, we predict the box to label according
-to the cluster label chosen.
+and positions. Then, we predict the boxes to label according
+to the chosen cluster.
 
+## Technical details
 * Granularity: Each bounding box
 * Features:
     * Semantic: DistilBERT embedding
@@ -11,14 +12,21 @@ to the cluster label chosen.
     * DBSCAN / O(n^2)
     * Spectral clustering / O(n^3)
 
-*** *** 之後可做: 使用者feedback (不要的、新增的框框)回來的方式 *** *** 
-—— 讓使用者標過的東西的weight變大，再跑clustering、再predict，感覺會有用，但也會很慢
-或者return「接下來每個框框，和使用者剛剛框的東西，屬於同個cluster的機率」，這樣還可以根據confidence visualize (e.g.越confident的顏色越偏紅)
+## Future work
+Incorporate users' feedback (newly selected & deselected):
+* Candidate I: Give more weight to the selected ones and cluster / 
+    predict again
+    * Easy to implement
+    * Probably too slow
+* Candidate II: Return "for each bounding box, what is the probability 
+    that 'this box and the one selected beforehand' belong to the same 
+    cluster?" The result can be visualized (e.g. the more the 
+    probability / confidence, the darker the box visually)
 
-## Dependencies
-pip install pytorch transformers
-
-NOTE 第一次跑的時候，huggingface transformers會下載bert，要花比較久時間。之後就不會了
+## Special note
+When running this code for the first time, huggingface transformers 
+will download the pre-trained bert automatically, whcih takes more time 
+than usual.
 """
 import json
 import os
@@ -46,7 +54,8 @@ def cluster_text():
     Read training files and train a clustering model
 
     OUT model: The clustering
-    OUT samples: (num of labels-len) list of (num of samples of the label-len) list of str
+    OUT samples: (num of labels-len) list of (num of samples of the 
+        label-len) list of str
 
     Label each bounding box with its cluster index
     """
@@ -57,14 +66,20 @@ def cluster_text():
         OUT: a numpy array of embedding
         """
 
-        input_ids = torch.tensor(tokenizer.encode(sentence, add_special_tokens=True)).unsqueeze(0)  # Batch size 1
+        input_ids = torch.tensor(tokenizer.encode(sentence, 
+            add_special_tokens=True)).unsqueeze(0)  # Batch size 1
         outputs = model(input_ids)
 
-        last_hidden_states = outputs[0]  # The last hidden-state is the first element of the output tuple
-        embedding = last_hidden_states[0,0]  # last_hidden_states.shape == (1, n, 768); n == len(tokens)
+        # The last hidden-state is the first element of the output tuple
+        last_hidden_states = outputs[0]
+
+        # last_hidden_states.shape == (1, n, 768); n == len(tokens)
+        embedding = last_hidden_states[0,0]
+
         return embedding.detach().numpy()
         
     def normalize_location(height,width,boundingBox):
+        # Normalize to [-1, 1]
         for i in range(len(boundingBox)):
             if i%2==0: #y
                 boundingBox[i] = (boundingBox[i]-height/2)/height * 2
@@ -73,14 +88,20 @@ def cluster_text():
         return np.array(boundingBox)
 
     def cluster(X):
-        #clustering = SpectralClustering(n_clusters=7, random_state=0).fit(X)   # O(n^3): too slow
-        clustering = DBSCAN(eps=100, min_samples=5).fit(X)                      # O(n^2): better
+        # O(n^3): too slow
+        #clustering = SpectralClustering(n_clusters=7, random_state=0).fit(X)
+
+        # O(n^2): better
+        clustering = DBSCAN(eps=100, min_samples=5).fit(X)
         return clustering
 
     train = []
     sents, embeddings = [], [] # DistilBERT "dim": 768
-    predictions = dict() # dict of filename of str(boundingBox) of its predicted label number
+    
+    # dict of filename of str(boundingBox) of its predicted label number
+    predictions = dict()
     mapping = [] # list of (filename, tuple(boundingBox))
+    
     for root, dirs, files in os.walk(Dt.dirs["input"], topdown=False):
         fnames = list([name for name in files if name.endswith(".json")])
         fnames.sort()
@@ -91,12 +112,15 @@ def cluster_text():
                 json_obj = json.loads(json_in.read())
                 height = json_obj['recognitionResults'][0]['height']
                 width = json_obj['recognitionResults'][0]['width']
-                sents = [word['text'] for line in json_obj['recognitionResults'][0]['lines'] for word in line["words"]]
+                sents = [word['text'] 
+                    for line in json_obj['recognitionResults'][0]['lines'] 
+                    for word in line["words"]]
                 
                 for line in json_obj['recognitionResults'][0]['lines']:
                     for word in line["words"]:
                         embedded = embed_sentence(word['text'])
-                        box = normalize_location(height,width,word["boundingBox"].copy())  # Normalize to +-1
+                        box = normalize_location(
+                            height, width, word["boundingBox"].copy())
                         embeddings.append([*embedded, *box])
 
                         mapping.append((name, len(predictions[name])))
