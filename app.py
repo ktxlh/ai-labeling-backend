@@ -1,11 +1,8 @@
 """
-有以下dirs:
-1. raw input, 要先準備好: Input
-2. 推薦標注: Recommend
-3. 最後使用者標注，評分用: Final
-
-flask cors的問題解法：
-https://stackoverflow.com/questions/25594893/how-to-enable-cors-in-flask
+The following directrories are involved:
+1. Input:       The raw input (the one given). It must be created explicitly in advance.
+2. Recommend:   The predicted labels
+3. Final:       The final labeling results for scoring
 """
 import json
 import os
@@ -48,6 +45,10 @@ def check_dirs():
     return "Input directory's path checked"
 
 def rule_based():
+    """
+    Returns the number of files are successfully 
+    processed / the number of files detected
+    """
     succeeded_fnames, other_fnames = [], []
     for root, dirs, files in os.walk(Dt.dirs["input"], topdown=False):
         fnames = list([name for name in files if name.endswith(".json")])
@@ -83,18 +84,11 @@ def rule_based():
 #############################################
 # APIs
 #############################################
-@app.route('/', methods=['GET'])
-def home():
-    return check_dirs()
-
 @app.route('/process', methods=['GET'])
 def process():
     """
-    開始prediction. （考慮user行為的算法、套neural的算法之後想）
-    predict完存進recommend
-    ##OUT: Number of files are successfully processed / number of files detected
-    
-    不對！我應該把圖片放進該放的html，直接return整個html
+    Do the prediction. The result will be 
+    stored in /Recommend
     """
     check_dirs()
     return rule_based()
@@ -103,7 +97,8 @@ def process():
 @app.route('/init_page', methods=['GET'])
 def init_page():
     """
-    OUT: A JSON LIST of the following: (containing all recommendations)
+    Returns A JSON LIST of the following: 
+    (containing all recommendations)
     {
         "filename": "labeling_....",
         "elements":
@@ -112,7 +107,8 @@ def init_page():
                 "boundingBox":[602,777,636,776,636,804,603,805],
                 "text": "Something",
                 "confidence":"Low"
-            }
+            },
+            ...
         ]
     }
     """    
@@ -131,8 +127,8 @@ def init_page():
 @app.route('/submit', methods=['POST'])
 def submit():
     """
-    key: "answer"
-    value: A string, which is a json list of the following:
+    In the raw body of the POST, send a string of which 
+    the format is a (json) list of the following:
     {
         "filename" : "labeling_0000.json",
         "content" : {
@@ -155,4 +151,9 @@ def submit():
     
     return "Succeeded"
 
-app.run()
+
+#############################################
+# Main
+#############################################
+if __name__ == "__main__":
+    app.run()

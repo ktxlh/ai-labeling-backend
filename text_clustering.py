@@ -1,16 +1,23 @@
 """
-DistilBERT embedding + position + DBSCAN: O(n^2)
+We cluster bounding boxes according to their semantic meaning 
+and postitions. Then, we predict the box to label according
+to the cluster label chosen.
 
-純bert得到每個框框的nlp feature，
-對所有框框clustering，再根據選的框框，選該cluster的框框
+* Granularity: Each bounding box
+* Features:
+    * Semantic: DistilBERT embedding
+    * Position: Relative position (normalized to range [-1, 1])
+* Algorithms:
+    * DBSCAN / O(n^2)
+    * Spectral clustering / O(n^3)
 
-*** *** 之後implement: 使用者feedback (不要的、新增的框框)回來的方式 *** *** 
+*** *** 之後可做: 使用者feedback (不要的、新增的框框)回來的方式 *** *** 
 —— 讓使用者標過的東西的weight變大，再跑clustering、再predict，感覺會有用，但也會很慢
 或者return「接下來每個框框，和使用者剛剛框的東西，屬於同個cluster的機率」，這樣還可以根據confidence visualize (e.g.越confident的顏色越偏紅)
 
 ## Dependencies
-pip install pytorch
-pip install transformers
+pip install pytorch transformers
+
 NOTE 第一次跑的時候，huggingface transformers會下載bert，要花比較久時間。之後就不會了
 """
 import json
