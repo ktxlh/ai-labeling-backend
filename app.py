@@ -18,7 +18,7 @@ from text_clustering import cluster_text
 app = flask.Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
-app.config["DEBUG"] = True
+#app.config["DEBUG"] = True
 
 class Dt: 
     key_word = "date"
@@ -26,7 +26,6 @@ class Dt:
         "input" : "./LabelingTrainingData/Input",
         "recommend" : "./LabelingTrainingData/Recommend",
         "final" : "./LabelingTrainingData/Final",
-        "metadata" : "./LabelingTrainingData/",
     }
 
     fnames = []
@@ -136,19 +135,28 @@ def submit():
             "text" : "$13. 53",
             "elements":
             [
-                {"bounding box":[602,777,636,776,636,804,603,805]},
-                {"bounding box":[602,777,636,776,636,804,603,805]},
+                {
+                    "boundingBox":[602,777,636,776,636,804,603,805],
+                    "text": "Something",
+                    "label": 0 // It exists when we choose to do text clustering
+                },
                 ...
             ]
         }
     }
     """
+    #label_chosen = 0
     answer = request.stream.read()
     json_objs = json.loads(answer)
     for obj in json_objs:
         with open(os.path.join(Dt.dirs['final'], obj['filename']),'w') as json_out:
             if(not len(obj["content"]['text'])==0 
                     and not len(obj["content"]['elements'])==0):
+                
+                #for box in obj["content"]['elements']:
+                #    if not box["label"] == label_chosen:
+                #        obj["content"]['elements'].remove(box)
+
                 json.dump(obj["content"], json_out)
     
     return "Succeeded"
