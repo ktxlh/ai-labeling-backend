@@ -4,11 +4,8 @@
 2. 推薦標注: Recommend
 3. 最後使用者標注，評分用: Final
 
-flask cors的問題解法：（稍微試了一次，還可能要改）
+flask cors的問題解法：
 https://stackoverflow.com/questions/25594893/how-to-enable-cors-in-flask
-
-read/write json
-https://stackabuse.com/reading-and-writing-json-to-a-file-in-python/
 """
 import json
 import os
@@ -18,6 +15,7 @@ from flask import request
 from flask_cors import CORS, cross_origin
 
 from recommender import select_box
+from text_clustering import cluster_text
 
 app = flask.Flask(__name__)
 cors = CORS(app)
@@ -25,31 +23,61 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 app.config["DEBUG"] = True
 
 class Dt: 
-    key_word = "Tax"
+    key_word = "date"
     dirs = {
         "input" : "./LabelingTrainingData/Input",
         "recommend" : "./LabelingTrainingData/Recommend",
         "final" : "./LabelingTrainingData/Final",
-        "metadata" : "./LabelingTrainingData/"
+        "metadata" : "./LabelingTrainingData/",
     }
 
-    #file_idx = 0
-    #images_per_page = 2
     fnames = []
-    succeeded_fnames, other_fnames = [], []
+    other_fnames = []
 
 #############################################
-# Utils
+# Utils / methods
 #############################################
 def check_dirs():
     dirs = Dt.dirs
     if not os.path.isdir(dirs["input"]):
-        print("ERROR: Bad input dir path: " + dirs["input"])
-        exit()
+        return "ERROR: Bad input dir path: " + dirs["input"]
+        
     for dkey in dirs.keys():
         if not os.path.isdir(dirs[dkey]):
             os.mkdir(dirs[dkey])
-check_dirs()
+    return "Input directory's path checked"
+
+def rule_based():
+    succeeded_fnames, other_fnames = [], []
+    for root, dirs, files in os.walk(Dt.dirs["input"], topdown=False):
+        fnames = list([name for name in files if name.endswith(".json")])
+        
+        detected = len(fnames)
+        for name in fnames:
+            with open(os.path.join(Dt.dirs["input"], name)) as json_in:
+                json_obj = json.loads(json_in.read())
+                rtn = select_box(Dt.key_word, json_obj)
+                
+                if rtn ==0 : 
+                    other_fnames.append(name)
+                    json_dict = {
+                        'filename' : name,
+                        'elements' : []
+                    }
+                else:
+                    succeeded_fnames.append(name)
+                    json_dict = {
+                        'filename' : name,
+                        'elements' : rtn
+                    }
+                with open(os.path.join(Dt.dirs["recommend"], name), 'w') as json_out:
+                    json.dump(json_dict, json_out)
+    
+    Dt.fnames = succeeded_fnames
+    Dt.other_fnames = other_fnames
+    succeeded = len(succeeded_fnames)
+    detected = len(other_fnames) + succeeded
+    return "{} out of {} ({:.2f}%) processed successfully with recommendations.".format(succeeded, detected, succeeded/detected*100)
 
 
 #############################################
@@ -57,7 +85,7 @@ check_dirs()
 #############################################
 @app.route('/', methods=['GET'])
 def home():
-    return "<h1>Sample Home html</h1><p>This site is a prototype API</p>"
+    return check_dirs()
 
 @app.route('/process', methods=['GET'])
 def process():
@@ -68,33 +96,10 @@ def process():
     
     不對！我應該把圖片放進該放的html，直接return整個html
     """
-    succeeded_fnames, other_fnames = [], []
-    for root, dirs, files in os.walk(Dt.dirs["input"], topdown=False):
-        fnames = list([name for name in files if name.endswith(".json")])
-        
-        fnames.sort() # Can be sorted according to the confidence levels of the prediction
-        detected = len(fnames)
-        for name in fnames:
-            with open(os.path.join(Dt.dirs["input"], name)) as json_in:
-                json_obj = json.loads(json_in.read())
-                rtn = select_box(Dt.key_word, json_obj)
-                
-                if rtn ==0 : 
-                    other_fnames.append(name)
-                else:
-                    succeeded_fnames.append(name)
-                    json_dict = {
-                        'filename' : name,
-                        'elements' : rtn
-                    }
-                    with open(os.path.join(Dt.dirs["recommend"], name), 'w') as json_out:
-                        json.dump(json_dict, json_out)
+    check_dirs()
+    return rule_based()
+    #return cluster_text()
     
-    Dt.fnames = succeeded_fnames
-    succeeded = len(succeeded_fnames)
-    detected = len(other_fnames) + succeeded
-    return "{} out of {} ({:.2f}%) processed successfully with recommendations.".format(succeeded, detected, succeeded/detected*100)
-
 @app.route('/init_page', methods=['GET'])
 def init_page():
     """
@@ -145,7 +150,8 @@ def submit():
     json_objs = json.loads(answer)
     for obj in json_objs:
         with open(os.path.join(Dt.dirs['final'], obj['filename']),'w') as json_out:
-            json.dump(obj["content"], json_out)
+            if(not len(obj["content"]['text'])==0 and not len(obj["content"]['elements'])==0):
+                json.dump(obj["content"], json_out)
     
     return "Succeeded"
 

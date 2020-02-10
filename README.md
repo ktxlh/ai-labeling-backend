@@ -1,4 +1,4 @@
-# labeling-frontend
+# labeling-backend
 
 ## Instructions
 (Suppose you have flask dependencies and so on already)

@@ -63,6 +63,7 @@ def main():
     correct = 0
     wrong = 0
     for f in os.listdir(candidate_dir):
+        print(f)
         if os.path.isfile(os.path.join(candidate_dir, f)):
             ground_truth_file = os.path.join(ground_truth_dir, f)
             candidate_file = os.path.join(candidate_dir, f)
